@@ -16,15 +16,18 @@ function getBaseUrl(): string {
     return `${origin}/api`;
   }
 
-  const hostUri = Constants.expoConfig?.hostUri ?? "";
+  // Use the environment variable for production/release APK
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    // Strip /trpc if it exists, as the Provider appends it
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/trpc$/, "");
+  }
 
+  const hostUri = Constants.expoConfig?.hostUri ?? "";
   const host = hostUri.split(":")[0];
+
   if (!host) {
-    console.log("[tRPC] Could not determine hostUri from Expo Constants", {
-      hostUri,
-      expoConfig: Constants.expoConfig,
-    });
-    return "http://localhost:3000/api";
+    console.log("[tRPC] Could not determine hostUri, falling back to localhost");
+    return "http://localhost:3000";
   }
 
   return `http://${host}:3000`;

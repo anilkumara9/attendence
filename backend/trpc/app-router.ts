@@ -43,9 +43,14 @@ export const appRouter = createTRPCRouter({
       email: z.string().email(),
     }))
     .mutation(async ({ input }) => {
-      const existing = await Staff.findOne({ staffId: input.staffId });
-      if (existing) {
+      const existingId = await Staff.findOne({ staffId: input.staffId });
+      if (existingId) {
         return { ok: false, message: "Staff ID already exists" };
+      }
+
+      const existingEmail = await Staff.findOne({ email: input.email });
+      if (existingEmail) {
+        return { ok: false, message: "Email already registered" };
       }
 
       const staff = new Staff(input);
@@ -100,9 +105,21 @@ export const appRouter = createTRPCRouter({
     }),
 
   getSessions: publicProcedure
-    .input(z.object({ markedBy: z.string().optional() }))
+    .input(z.object({
+      markedBy: z.string().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional()
+    }))
     .query(async ({ input }) => {
-      const query = input.markedBy ? { markedBy: input.markedBy } : {};
+      const query: any = input.markedBy ? { markedBy: input.markedBy } : {};
+
+      if (input.startDate && input.endDate) {
+        query.createdAt = {
+          $gte: new Date(input.startDate),
+          $lte: new Date(input.endDate)
+        };
+      }
+
       const sessions = await AttendanceSession.find(query).sort({ createdAt: -1 }) as IAttendanceSession[];
       return sessions.map((s: IAttendanceSession) => ({
         id: s._id.toString(),

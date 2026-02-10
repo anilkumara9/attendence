@@ -116,6 +116,10 @@ export interface AttendanceContextValue {
     deleteSession: (sessionId: string) => Promise<void>;
     deleteAllSessions: () => Promise<void>;
     resetStudents: () => void;
+    selectedDate: Date | null;
+    setSelectedDate: (date: Date | null) => void;
+    refreshHistory: () => Promise<void>;
+    isRefreshing: boolean;
     stats: { totalSessions: number; totalStudents: number };
 }
 
@@ -134,18 +138,37 @@ export function AttendanceProvider({ children }: { children: React.ReactNode }) 
     const [isHydrating, setIsHydrating] = useState<boolean>(true);
     const [isImporting, setIsImporting] = useState<boolean>(false);
     const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
     const saveSessionMutation = trpc.saveSession.useMutation();
     const deleteSessionMutation = trpc.deleteSession.useMutation();
     const deleteAllSessionsMutation = trpc.deleteAllSessions.useMutation();
     const getSessionsQuery = trpc.getSessions.useQuery(
-        { markedBy: staff?.id },
+        {
+            markedBy: staff?.id,
+            startDate: selectedDate ? new Date(new Date(selectedDate).setHours(0, 0, 0, 0)).toISOString() : undefined,
+            endDate: selectedDate ? new Date(new Date(selectedDate).setHours(23, 59, 59, 999)).toISOString() : undefined
+        },
         { enabled: !!staff?.id }
     );
 
+    const refreshHistory = useCallback(async () => {
+        if (!staff?.id) return;
+        setIsRefreshing(true);
+        try {
+            await getSessionsQuery.refetch();
+        } catch (e) {
+            console.log("[Attendance] refresh error", e);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [staff?.id, getSessionsQuery]);
+
     useEffect(() => {
         let mounted = true;
-        // Reset state immediately when user changes to prevent leakage
+        // Reset state and show loading whenever filter/user changes
+        setIsHydrating(true);
         setSessions([]);
 
         const run = async () => {
@@ -168,8 +191,13 @@ export function AttendanceProvider({ children }: { children: React.ReactNode }) 
                            datetime(localCreatedTime/1000, 'unixepoch') as createdAt 
                     FROM LocalAttendance 
                     WHERE markedBy = ?
+                      AND (? IS NULL OR date(localCreatedTime/1000, 'unixepoch', 'localtime') = ?)
                     ORDER BY localCreatedTime DESC
-                `, [staff?.id || ""]);
+                `, [
+                    staff?.id || "",
+                    selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : null,
+                    selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : null
+                ]);
 
                 if (!mounted) return;
 
@@ -197,7 +225,7 @@ export function AttendanceProvider({ children }: { children: React.ReactNode }) 
         return () => {
             mounted = false;
         };
-    }, [staff?.id]);
+    }, [staff?.id, selectedDate]);
 
     // Sync from cloud when online
     useEffect(() => {
@@ -618,6 +646,10 @@ export function AttendanceProvider({ children }: { children: React.ReactNode }) 
         deleteSession,
         deleteAllSessions,
         resetStudents,
+        selectedDate,
+        setSelectedDate,
+        refreshHistory,
+        isRefreshing,
         stats,
     };
 

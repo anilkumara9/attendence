@@ -18,6 +18,7 @@ import {
 
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useAuth } from "@/providers/AuthProvider";
+import * as Network from "expo-network";
 
 export default function LoginScreen() {
   const auth = useAuth();
@@ -37,6 +38,39 @@ export default function LoginScreen() {
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showPass, setShowPass] = useState<boolean>(false);
+
+  const [netState, setNetState] = useState<Network.NetworkState | null>(null);
+  const [deviceIp, setDeviceIp] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkNet = async () => {
+      try {
+        const state = await Network.getNetworkStateAsync();
+        setNetState(state);
+        const ip = await Network.getIpAddressAsync();
+        setDeviceIp(ip);
+      } catch (e) {
+        console.log("[Login] network check error", e);
+      }
+    };
+    checkNet();
+    const sub = Network.addNetworkStateListener(setNetState);
+    return () => sub.remove();
+  }, []);
+
+  const isLocalApi = useMemo(() => {
+    const url = process.env.EXPO_PUBLIC_API_URL || "";
+    return url.includes("192.168.") || url.includes("10.") || url.includes("localhost") || url.includes("127.0.0.1");
+  }, []);
+
+  const showNetworkWarning = useMemo(() => {
+    if (!netState) return false;
+    // Warning if API is local but phone is on Cellular OR not connected
+    if (isLocalApi && (netState.type === Network.NetworkStateType.CELLULAR || !netState.isConnected)) {
+      return true;
+    }
+    return false;
+  }, [netState, isLocalApi]);
 
   const canSubmit = useMemo(() => {
     if (isRegistering) {
@@ -117,10 +151,13 @@ export default function LoginScreen() {
         >
           <View style={styles.brand}>
             <Image
-              source={require("@/assets/images/poly.jpg")}
+              source={require("@/assets/images/poly.png")}
               style={styles.logoLarge}
             />
             <Text style={styles.logoDesc}>Cyber Physical Systems & Security</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 4 }}>
+              API: {process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/trpc"}
+            </Text>
             {logoutReason === "expired" && (
               <View style={styles.notice} testID="login-expired-notice">
                 <Text style={styles.noticeTitle}>Session expired</Text>
@@ -130,6 +167,18 @@ export default function LoginScreen() {
               </View>
             )}
           </View>
+
+          {showNetworkWarning && (
+            <View style={[styles.notice, { backgroundColor: "rgba(255, 100, 100, 0.2)", borderColor: "rgba(255, 100, 100, 0.4)", marginBottom: 20 }]}>
+              <Text style={[styles.noticeTitle, { color: "#FF6B6B" }]}>⚠️ Connectivity Warning</Text>
+              <Text style={styles.noticeText}>
+                The app is trying to reach a local backend ({process.env.EXPO_PUBLIC_API_URL}), but your device is on {netState?.type === Network.NetworkStateType.CELLULAR ? "Cellular data" : "no internet"}.
+                {"\n\n"}To fix this:
+                {"\n"}• Connect your phone to the SAME Wi-Fi as your computer.
+                {"\n"}• Or use a public backend URL in the .env file.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{isRegistering ? "Create Staff Account" : "Staff Login"}</Text>

@@ -5,8 +5,8 @@
   "scripts": {
     "start": "expo start",
     "tunnel": "expo start --tunnel",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "backend": "npx tsx --watch backend/index.ts"
@@ -16,6 +16,7 @@
     "@hono/node-server": "^1.19.8",
     "@nkzw/create-context-hook": "^1.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@rneui/themed": "^4.0.0-rc.8",
     "@rork-ai/toolkit-sdk": "^0.2.51",
     "@stardazed/streams-text-encoding": "^1.0.2",
@@ -28,6 +29,7 @@
     "dotenv": "^17.2.3",
     "expo": "^54.0.31",
     "expo-blur": "~15.0.8",
+    "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.11",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
@@ -38,6 +40,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.10",
     "expo-location": "~19.0.8",
+    "expo-network": "~8.0.8",
     "expo-print": "~15.0.8",
     "expo-router": "~6.0.17",
     "expo-sharing": "~14.0.8",
@@ -72,5 +75,8 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "expo-location": "$expo-location"
+  }
 }

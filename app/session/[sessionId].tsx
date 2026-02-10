@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
+import { Share } from "lucide-react-native";
 import React, { useCallback, useMemo } from "react";
 import {
   Alert,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 
 import Colors from "@/constants/colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { useAttendance } from "@/providers/AttendanceProvider";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -17,6 +19,7 @@ export default function SessionDetailsModal() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { getSessionById, exportSessionPdf } = useAttendance();
   const { notifyActivity } = useAuth();
+  const Theme = useThemeColor();
 
   const session = useMemo(() => {
     return sessionId ? getSessionById(sessionId) : undefined;
@@ -66,7 +69,8 @@ export default function SessionDetailsModal() {
                 pressed && styles.headerBtnPressed,
               ]}
             >
-              <Text style={styles.headerBtnText}>PDF</Text>
+              <Share size={20} color={Theme.text} />
+              <Text style={styles.headerBtnText}>Share</Text>
             </Pressable>
           ),
         }}
@@ -134,19 +138,20 @@ const styles = StyleSheet.create({
   headerBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#F2F4F7",
-    borderWidth: 1,
-    borderColor: "#E4E7EC",
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   headerBtnPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.7,
+    transform: [{ scale: 0.96 }],
   },
   headerBtnText: {
     color: Colors.light.text,
-    fontWeight: "900",
-    fontSize: 12,
+    fontWeight: "800",
+    fontSize: 13,
   },
   content: {
     padding: 16,

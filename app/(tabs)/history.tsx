@@ -1,7 +1,8 @@
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, router } from "expo-router";
-import { ChevronRight, Trash2 } from "lucide-react-native";
+import { Calendar, ChevronRight, Trash2, XCircle } from "lucide-react-native";
 import React, { useCallback, useMemo } from "react";
 import {
     Alert,
@@ -9,6 +10,7 @@ import {
     Image,
     Platform,
     Pressable,
+    RefreshControl,
     StyleSheet,
     Text,
     View,
@@ -21,7 +23,19 @@ import { useAuth } from "@/providers/AuthProvider";
 
 export default function HistoryScreen() {
     const { notifyActivity } = useAuth();
-    const { sessions, deleteSession, deleteAllSessions, exportSessionPdf, stats } = useAttendance();
+    const {
+        sessions,
+        isHydrating,
+        refreshHistory,
+        isRefreshing,
+        deleteSession,
+        deleteAllSessions,
+        exportSessionPdf,
+        stats,
+        selectedDate,
+        setSelectedDate
+    } = useAttendance();
+    const [showPicker, setShowPicker] = React.useState(false);
     const Theme = useThemeColor();
     const styles = useMemo(() => createStyles(Theme), [Theme]);
 
@@ -129,6 +143,31 @@ export default function HistoryScreen() {
         );
     }, [deleteAllSessions]);
 
+    const onDateChange = useCallback((event: DateTimePickerEvent, date?: Date) => {
+        setShowPicker(false);
+        if (event.type === "set" && date) {
+            setSelectedDate(date);
+        }
+    }, [setSelectedDate]);
+
+    const clearDate = useCallback(() => {
+        setSelectedDate(null);
+    }, [setSelectedDate]);
+
+    React.useEffect(() => {
+        if (!isHydrating && selectedDate && sessions.length === 0) {
+            Alert.alert(
+                "No Record Found",
+                "There are no attendance records for the selected date.",
+                [
+                    { text: "Change Date", onPress: () => setShowPicker(true) },
+                    { text: "Clear Filter", onPress: clearDate },
+                    { text: "OK" }
+                ]
+            );
+        }
+    }, [isHydrating, sessions.length, selectedDate, clearDate]);
+
     return (
         <View style={styles.page}>
             <Stack.Screen
@@ -145,7 +184,7 @@ export default function HistoryScreen() {
             >
                 <View style={styles.headerRow}>
                     <Image
-                        source={require("@/assets/images/poly.jpg")}
+                        source={require("@/assets/images/poly.png")}
                         style={styles.logo}
                     />
                     <Text style={styles.heroTitle}>Session History</Text>
@@ -164,16 +203,58 @@ export default function HistoryScreen() {
                 </View>
 
                 {sessions.length > 0 && (
-                    <Pressable
-                        onPress={onClearAll}
-                        style={({ pressed }) => [
-                            styles.clearAllBtn,
-                            pressed && styles.clearAllBtnPressed
-                        ]}
-                    >
-                        <Trash2 size={16} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.clearAllText}>Clear All History</Text>
-                    </Pressable>
+                    <View style={styles.heroActions}>
+                        <Pressable
+                            onPress={() => setShowPicker(true)}
+                            style={({ pressed }) => [
+                                styles.actionBtn,
+                                pressed && styles.actionBtnPressed,
+                                !!selectedDate && styles.actionBtnActive
+                            ]}
+                        >
+                            <Calendar size={16} color="#FFFFFF" />
+                            <Text style={styles.actionText}>
+                                {selectedDate ? selectedDate.toLocaleDateString() : "Filter Date"}
+                            </Text>
+                        </Pressable>
+
+                        {!!selectedDate && (
+                            <Pressable
+                                onPress={clearDate}
+                                style={({ pressed }) => [
+                                    styles.actionBtn,
+                                    pressed && styles.actionBtnPressed,
+                                    { backgroundColor: "rgba(255,255,255,0.2)" }
+                                ]}
+                            >
+                                <XCircle size={16} color="#FFFFFF" />
+                                <Text style={styles.actionText}>Clear</Text>
+                            </Pressable>
+                        )}
+
+                        <View style={{ flex: 1 }} />
+
+                        <Pressable
+                            onPress={onClearAll}
+                            style={({ pressed }) => [
+                                styles.clearAllBtn,
+                                pressed && styles.clearAllBtnPressed
+                            ]}
+                        >
+                            <Trash2 size={16} color="rgba(255,255,255,0.8)" />
+                            <Text style={styles.clearAllText}>Clear All</Text>
+                        </Pressable>
+                    </View>
+                )}
+
+                {showPicker && (
+                    <DateTimePicker
+                        value={selectedDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={onDateChange}
+                        maximumDate={new Date()}
+                    />
                 )}
             </LinearGradient>
 
@@ -182,13 +263,29 @@ export default function HistoryScreen() {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => <SessionItem item={item} />}
                 contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={refreshHistory}
+                        tintColor={Theme.tint}
+                        colors={[Theme.tint]}
+                    />
+                }
                 ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <Text style={styles.emptyTitle}>No records yet</Text>
-                        <Text style={styles.emptyText}>
-                            Completed attendance sessions will appear here.
-                        </Text>
-                    </View>
+                    isHydrating ? (
+                        <View style={styles.empty}>
+                            <Text style={styles.emptyTitle}>Loading history...</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.empty}>
+                            <Text style={styles.emptyTitle}>No Records Found</Text>
+                            <Text style={styles.emptyText}>
+                                {selectedDate
+                                    ? "Try a different date or clear the filter."
+                                    : "Your attendance sessions will appear here."}
+                            </Text>
+                        </View>
+                    )
                 }
             />
         </View>
@@ -213,21 +310,49 @@ const createStyles = (Theme: any) =>
         clearAllBtn: {
             flexDirection: "row",
             alignItems: "center",
-            marginTop: 18,
-            alignSelf: "flex-start",
             backgroundColor: "rgba(255,255,255,0.12)",
             paddingVertical: 8,
-            paddingHorizontal: 16,
+            paddingHorizontal: 12,
             borderRadius: 12,
-            gap: 8,
+            gap: 6,
             borderWidth: 1,
             borderColor: "rgba(255,255,255,0.2)",
         },
         clearAllBtnPressed: {
-            backgroundColor: "rgba(255,255,255,0.25)",
+            opacity: 0.7,
             transform: [{ scale: 0.98 }],
         },
         clearAllText: {
+            color: "#FFFFFF",
+            fontSize: 12,
+            fontWeight: "700",
+        },
+        heroActions: {
+            flexDirection: "row",
+            alignItems: "center",
+            marginTop: 18,
+            gap: 10,
+        },
+        actionBtn: {
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.12)",
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 12,
+            gap: 6,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.2)",
+        },
+        actionBtnActive: {
+            backgroundColor: "rgba(255,255,255,0.25)",
+            borderColor: "#FFFFFF",
+        },
+        actionBtnPressed: {
+            opacity: 0.7,
+            transform: [{ scale: 0.98 }],
+        },
+        actionText: {
             color: "#FFFFFF",
             fontSize: 13,
             fontWeight: "700",

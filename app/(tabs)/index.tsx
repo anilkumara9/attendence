@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack } from "expo-router";
-import { RefreshCw } from "lucide-react-native";
+import { RefreshCw, Share2 } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -285,7 +285,7 @@ export default function AttendanceScreen() {
       >
         <View style={styles.headerRow}>
           <Image
-            source={require("@/assets/images/poly.jpg")}
+            source={require("@/assets/images/poly.png")}
             style={styles.logo}
           />
           <Text style={styles.heroTitle}>Take Attendance</Text>
@@ -490,7 +490,8 @@ export default function AttendanceScreen() {
                   pressed && styles.exportBtnPressed,
                 ]}
               >
-                <Text style={styles.exportBtnText}>Export PDF</Text>
+                <Share2 size={16} color={Theme.text} />
+                <Text style={styles.exportBtnText}>Share Report</Text>
               </Pressable>
             </View>
           )}
@@ -820,11 +821,14 @@ const createStyles = (Theme: any) =>
       fontWeight: "900",
     },
     exportBtn: {
-      width: 120,
+      width: 140,
       backgroundColor: Theme.card,
       borderRadius: 20,
       paddingVertical: 14,
       alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "row",
+      gap: 8,
       borderWidth: 1,
       borderColor: Theme.border,
     },

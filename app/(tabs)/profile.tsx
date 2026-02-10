@@ -54,7 +54,7 @@ export default function ProfileScreen() {
             >
                 <View style={styles.headerRow}>
                     <Image
-                        source={require("@/assets/images/poly.jpg")}
+                        source={require("@/assets/images/poly.png")}
                         style={styles.logo}
                     />
                     <Text style={styles.heroTitle}>Staff Profile</Text>

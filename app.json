@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "MyClass Attendance Mobile",
+    "name": "attendance",
     "slug": "myclass-attendance-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/poly.png",
     "scheme": "rork-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/poly.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,10 +20,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/poly.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.myclass_attendance_mobile",
+      "package": "app.rork.myclassattendancemobile",
       "permissions": [
         "android.permission.VIBRATE",
         "READ_EXTERNAL_STORAGE",
@@ -48,10 +48,29 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "enablePngCrunchInReleaseBuilds": false
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "b56744d5-4731-40ad-9bfd-dc9148dacdab"
+      }
+    },
+    "owner": "anilkumar09"
   }
 }
